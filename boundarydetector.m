@@ -10,12 +10,14 @@ vc = vc - min(vc(:));
 vc = vc/max(vc);
 
 figure(9)
-subplot(1,2,1)
+s(1) = subplot(1,2,1)
 plot(hc)
 hold on
-subplot(1,2,2)
+s(2) = subplot(1,2,2)
 plot(vc)
 hold on
+title(s(1),'Horizontal collection')
+title(s(2),'Vertical collection')
 
 [pk.hc,lc.hc] = findpeaks(hc,'NPeaks',2,'MinPeakDistance',100,'SortStr','descend');
 [pk.vc,lc.vc] = findpeaks(vc,'NPeaks',1,'MinPeakDistance',100,'SortStr','descend');
