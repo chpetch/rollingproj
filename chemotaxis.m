@@ -1,3 +1,5 @@
+%work for determining histogram distribution of 2 images (different time)
+
 clear
 clc
 clf
@@ -102,7 +104,5 @@ for i = 1:1:2
     title(['Cell distribution in ',pm.FileName])
     
 end
-saveas(figure(1),[PathName,'\detectedcells.jpg'])
-saveas(figure(2),[PathName,'\histogram.jpg'])
-xlswrite([PathName,'\chemotaxis_0.xls'],output.raw{1},'first','A1');
-xlswrite([PathName,'\chemotaxis_120.xls'],output.raw{2},'last','A1');
+
+
