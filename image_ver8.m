@@ -1,11 +1,3 @@
-%%%changelog for ver6
-% / centroid x , y and area are used as feature instead of using only centroid x,y
-% / no more histogram of each file (only histogram from accumulated average velocity)
-% / collected result are more well organized
-%% Problems
-% X lose detected cell may be introduced leading to creation of new
-% trajectory
-
 clear
 clc
 clf
