@@ -22,12 +22,14 @@ hold on
 
 if abs(lc.hc(1) - lc.hc(2)) < 200
     figure(10)
-    subplot(1,2,1)
+    s(1) = subplot(1,2,1)
     plot(hc)
     hold on
-    subplot(1,2,2)
+    s(2) = subplot(1,2,2)
     plot(vc)
     hold on
+    title(s(1),'Horizontal collection')
+    title(s(2),'Vertical collection')
     lc.hc(1) = input('upbd : ');
     lc.hc(2) = input('lwbd : ');
 end
