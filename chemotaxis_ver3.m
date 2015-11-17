@@ -41,7 +41,9 @@ clf
 [pm.FileName,PathName] = uigetfile(filetype','Select the video file');
 handles.pathname = [PathName,pm.FileName];
 bw = input('black(0) or white(1) : ');
-for i = 1:1:2
+
+%121 in 1 video
+for i = 1:1:121
        
     vpic = imread(handles.pathname,i);
     
@@ -52,7 +54,7 @@ for i = 1:1:2
     [pk,lc] = boundarydetector(vpic);
     pk.hc = sort(pk.hc);
     lc.hc = sort(lc.hc);    
-    croppic = vpic(lc.hc(1)+5:lc.hc(2)-5,lc.vc:lc.vc+(end/2));
+    croppic = vpic(lc.hc(1)+5:lc.hc(2)-5,lc.vc:lc.vc+(end/3));
     scl = 400/(lc.hc(2)-lc.hc(1));
     croppic = imsharpen(croppic);
     
@@ -63,10 +65,11 @@ for i = 1:1:2
     ori = croppic;
     croppic = y;
     
-    thpic = imtophat(croppic, strel('disk', 5));
-    logpic = imagefilt(thpic,'log',9,3);
-    
-    I = logpic;
+    thpic = imtophat(croppic, strel('disk', 10));
+    %logpic = imagefilt(thpic,'log',9,4);
+    %imshow(logpic)
+    I = thpic;
+    %I = logpic;
     thresh = multithresh(I,2);
     seg_I = imquantize(I,thresh);
     RGB = label2rgb(seg_I);
@@ -75,24 +78,27 @@ for i = 1:1:2
     center = cat(1, properties.Centroid);
     
     figure(1)
-    subplot(2,1,i)
-    imshow(ori)
+    imshow(BW)
     hold on
     plot(center(:,1), center(:,2), 'r*');
     title(['Detected cells in ',pm.FileName])
     
-    figure(2)
-    subplot(2,1,i)
-    color = 'r';
-    [histFreq, histXout] = hist(center(:,1),[0:2:size(seg_I,2)]);
-    output.value{i} = histFreq';
-    output.freq{i} = histXout';
-    output.raw{i} = center(:,1);
-    hff = (histFreq/sum(histFreq)*100);
-    bar(histXout, histFreq/sum(histFreq)*100,1,color)
-    hold on
-    PD = fitdist(center(:,1), 'normal');
-    plot(histXout, pdf(PD, histXout)*100,['b' '-'],'LineWidth', 3);
-    title(['Cell distribution in ',pm.FileName])
+    features{i} = [fliplr(center)];
+    mf = features;
+    %sidis = matchingframes(mf);
+    pause
+%     figure(2)
+%     subplot(2,1,i)
+%     color = 'r';
+%     [histFreq, histXout] = hist(center(:,1),[0:2:size(seg_I,2)]);
+%     output.value{i} = histFreq';
+%     output.freq{i} = histXout';
+%     output.raw{i} = center(:,1);
+%     hff = (histFreq/sum(histFreq)*100);
+%     bar(histXout, histFreq/sum(histFreq)*100,1,color)
+%     hold on
+%     PD = fitdist(center(:,1), 'normal');
+%     plot(histXout, pdf(PD, histXout)*100,['b' '-'],'LineWidth', 3);
+%     title(['Cell distribution in ',pm.FileName])
     
 end
