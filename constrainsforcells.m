@@ -52,6 +52,7 @@ result.cse_original = [[1:size(t_cell,2)];sframe;sframe + ntf - ones(size(ntf,1)
 
 if isempty(t_cell) ~= 1
     
+    %delete cells that move faster than pm.d_threshold
     for i = 1:size(t_cell,2)
         for j = 1 : size(t_cell{i},1)-1
             acvel{i}(j) = (sqrt(sum((t_cell{i}(j,:) - t_cell{i}(j+1,:)).^2)));

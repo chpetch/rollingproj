@@ -11,7 +11,9 @@ pm.contrast = [0.6 1];
 pm.nFrames = 61;
 pm.pkheight = 0.15;
 pm.tlr = 15;
+%maximum distance 
 pm.d_threshold = 25;
+%minimum number of frames that cell has to appear
 pm.mft = 10;
 pm.pkdist = 5;
 pm.input_binsize = 9;
@@ -20,6 +22,7 @@ pm.umperpx = 0;
 pm.step = 0.5;
 pm.lng = 20;
 pm.color = 'b';
+%number of connected frames
 pm.ccf = 5;
 pm.smc = 30;
 pm.removeslowspeed = 0;
