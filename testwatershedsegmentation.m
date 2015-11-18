@@ -28,6 +28,7 @@ pm.ccf = 5;
 pm.smc = 30;
 fldop = 0;
 pm.bdd = 0;
+pm.th_area = 700;
 dt = clock;
 
 pm.fldname = [num2str(dt(3)),'_',num2str(dt(2)),'_',num2str(dt(1)),'_H',num2str(dt(4)),'M',num2str(dt(5))];
@@ -60,17 +61,18 @@ fldname = pm.fldname;
 fldname = [savename(1:max(findstr(savename,'\'))),fldname];
 mkdir(fldname)
 ba = 1;
+
 for i = 1:60:pm.nFrames
     i
     pic(i).cdata = imread(handles.pathname,i);
     procpic = pic(i).cdata;
-%     hgamma = ...
-%             vision.GammaCorrector(2.2,'Correction','De-gamma');
-%     y = step(hgamma, procpic);
-%     procpic = y;
+    %     hgamma = ...
+    %             vision.GammaCorrector(2.2,'Correction','De-gamma');
+    %     y = step(hgamma, procpic);
+    %     procpic = y;
     %reverse color
     procpic = imcomplement(procpic);
-    %procpic = imsharpen(procpic);
+    procpic = imsharpen(procpic);
     %store original iamge
     ori = procpic;
     %background subtraction
@@ -78,19 +80,9 @@ for i = 1:60:pm.nFrames
     I2 = procpic - background;
     %make circular objects stand out? do we need it?
     I2=imtophat(I2, strel('disk', 20));
-    logpic = imagefilt(I2,'log',10,2.5);
-    I = logpic;
-%     thresh = multithresh(I,2);
-%     seg_I = imquantize(I,thresh);
-%     RGB = label2rgb(seg_I);
-%     BW = (seg_I == 3);
-%     figure
-%     imshow(BW)
-    %adjust contrast
     I3 = imadjust(I2);
     level = graythresh(I3);
     bw = im2bw(I3,level);
-    
     %fill in the holes
     bw = imfill(bw,'holes');
     %delete obj smaller than the second agruement
@@ -98,45 +90,66 @@ for i = 1:60:pm.nFrames
     %delete border obj
     bw = imclearborder(bw, 4);
     bw = bwareaopen(bw, 150);
-    %Hessian ridge detection
+    %Hessian ridge detection (will be used as segmentation function)
     Hf=hessianridgefilter(bw,0);
-    imshow(Hf)
+    
+    %determine foreground mask
+    I = imcomplement(I3);
+    %default value = 8
+    se = strel('disk', 8);
+    Io = imopen(I, se);
+    Ie = imerode(I, se);
+    Iobr = imreconstruct(Ie, I);
+    Iobrd = imdilate(Iobr, se);
+    Iobrcbr = imreconstruct(imcomplement(Iobrd), imcomplement(Iobr));
+    Iobrcbr = imcomplement(Iobrcbr);
+    level = graythresh(Iobrcbr);
+    fgm = imregionalmin(Iobrcbr);
+    se2 = strel('disk', 5);
+    fgm3 = imerode(fgm, se2);
+    fgm4 = bwareaopen(fgm3, 20);
+    fgm4 = imclearborder(fgm4, 18);
+    %fgm4 = imerode(bw,se2);
+    %create foreground mask by merging 2 masks
+    fgm4 = fgm4&bw;
+    fgm4 = bwareaopen(fgm3, 20);
+    
+    %determine background mask
+    D = ~bwdist(im2bw(Iobrcbr, graythresh(Iobrcbr)));
+    %D = ~bwdist(bw);
+
+    DL = watershed(D);
+    bgm = DL == 0;
+    
+    %mHf = uint16((Hf.^2)*65535);
+    gradmag2 = imimposemin(Hf, fgm4|bgm);
+    L = watershed(gradmag2);
+       
+    I4 = I;
+    I4(imdilate(L == 0, ones(3, 3)) | bgm | fgm4) = 255;
+    Lrgb = label2rgb(L, 'jet', 'w', 'shuffle');
+    figure
+    imshow(I)
+    hold on
+    himage = imshow(Lrgb);
+    himage.AlphaData = 0.3;
+    title('Lrgb superimposed transparently on original image')
+    
     %extract infomation from bw image
-    info = regionprops(bw,'Centroid','Eccentricity','MajorAxisLength','MinorAxisLength');
+    info = regionprops(L,'Centroid','Eccentricity','MajorAxisLength','MinorAxisLength','Area');
+    %delete background and large size elements in image
+    area = cat(1,info.Area);
+    info(find(area>pm.th_area)) = [];
     mn = cat(1,info.MinorAxisLength);
     mj = cat(1,info.MajorAxisLength);
     center = cat(1, info.Centroid);
     circularity = mj./mn;
     %show fancy plot blah blah
-    cc = bwconncomp(bw);
-    labeled = labelmatrix(cc);
-    RGB_label = label2rgb(labeled, 'winter', 'c', 'shuffle');
-    subplot(1,2,1)
-    imshow(I3)
-    subplot(1,2,2)
-    BWoutline = bwperim(bw);
-    RGB_label(BWoutline) = 255;
-    imshow(RGB_label)
-    
-    D = bwdist(bw);
-    DL = watershed(D);
-    bgm = DL == 0;
-    figure
-    imshow(bgm), title('Watershed ridge lines (bgm)')
-    gradmag2 = imimposemin(gradmag, bgm | fgm4);
-    L = watershed(gradmag2);
-    
-    
-    for k = 1 : cc.NumObjects
+    for k = 1 : size(info,1)-1
         text(center(k,1),center(k,2), ...
             sprintf('%1.3f', circularity(k)), ...
             'Color','r');
     end
-    
-    figure
-    mesh(uint8(Hf*255))
-    colormap winter
-    colorbar
     
     %store necessary information
     store.features{ba} = [fliplr(center)];
@@ -145,8 +158,8 @@ for i = 1:60:pm.nFrames
     pause
 end
 
-xlswrite([fldname,'\ccr.xls'], store.circularity{1}, 'circularity of first frame');
-xlswrite([fldname,'\ccr.xls'], store.circularity{2}, 'circularity of last frame');
+%xlswrite([fldname,'\ccr.xls'], store.circularity{1}, 'circularity of first frame');
+%xlswrite([fldname,'\ccr.xls'], store.circularity{2}, 'circularity of last frame');
 
 %match cell of frame t and frame t+1
 % run = 1;

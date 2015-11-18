@@ -55,17 +55,22 @@ else
 end
 
 %prepare save path
-    savename = handles.pathname(1:end-4);
-    fldname = pm.fldname;
-    fldname = [savename(1:max(findstr(savename,'\'))),fldname];
-    mkdir(fldname)
+savename = handles.pathname(1:end-4);
+fldname = pm.fldname;
+fldname = [savename(1:max(findstr(savename,'\'))),fldname];
+mkdir(fldname)
 ba = 1;
 for i = 1:60:pm.nFrames
     i
     pic(i).cdata = imread(handles.pathname,i);
     procpic = pic(i).cdata;
+%     hgamma = ...
+%             vision.GammaCorrector(2.2,'Correction','De-gamma');
+%     y = step(hgamma, procpic);
+%     procpic = y;
     %reverse color
     procpic = imcomplement(procpic);
+    procpic = imsharpen(procpic);
     %store original iamge
     ori = procpic;
     %background subtraction
@@ -73,30 +78,35 @@ for i = 1:60:pm.nFrames
     I2 = procpic - background;
     %make circular objects stand out? do we need it?
     I2=imtophat(I2, strel('disk', 20));
+    logpic = imagefilt(I2,'log',10,2.5);
+    I = logpic;
+%     thresh = multithresh(I,2);
+%     seg_I = imquantize(I,thresh);
+%     RGB = label2rgb(seg_I);
+%     BW = (seg_I == 3);
+%     figure
+%     imshow(BW)
     %adjust contrast
     I3 = imadjust(I2);
     level = graythresh(I3);
     bw = im2bw(I3,level);
-    
-    [gx, gy] = gradient(double(bw));
-    [gxx, gxy] = gradient(gx);
-    [gxy, gyy] = gradient(gy);
-    Hf = gxx.*gyy - (gxy).^2;
-    imshow(Hf)
     
     %fill in the holes
     bw = imfill(bw,'holes');
     %delete obj smaller than the second agruement
     bw = bwareaopen(bw, 150);
     %delete border obj
-    bw = imclearborder(bw, 4); 
+    bw = imclearborder(bw, 4);
     bw = bwareaopen(bw, 150);
+    %Hessian ridge detection
+    Hf=hessianridgefilter(bw,0);
+    imshow(Hf)
     %extract infomation from bw image
     info = regionprops(bw,'Centroid','Eccentricity','MajorAxisLength','MinorAxisLength');
     mn = cat(1,info.MinorAxisLength);
     mj = cat(1,info.MajorAxisLength);
     center = cat(1, info.Centroid);
-    circularity = mj./mn;    
+    circularity = mj./mn;
     %show fancy plot blah blah
     cc = bwconncomp(bw);
     labeled = labelmatrix(cc);
@@ -108,11 +118,23 @@ for i = 1:60:pm.nFrames
     RGB_label(BWoutline) = 255;
     imshow(RGB_label)
     
+    D = -bwdist(~bw);
+    D(~bw) = -Inf;
+    L = watershed(D);
+    figure
+    imshow(label2rgb(L,'jet','w'))
+    
     for k = 1 : cc.NumObjects
-    text(center(k,1),center(k,2), ...
-        sprintf('%1.3f', circularity(k)), ...
-        'Color','r');
+        text(center(k,1),center(k,2), ...
+            sprintf('%1.3f', circularity(k)), ...
+            'Color','r');
     end
+    
+    figure
+    mesh(uint8(Hf*255))
+    colormap winter
+    colorbar
+    
     %store necessary information
     store.features{ba} = [fliplr(center)];
     store.circularity{ba} = mj./mn;
