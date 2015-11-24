@@ -158,7 +158,6 @@ for i = 1:60:pm.nFrames
     %delete the cells that we don't want
     delcell = input('Which cell do you want to delete?');
     if (isempty(delcell)==0)
-        clear csi
         info(delcell) = [];
         area = cat(1,info.Area);
         center = cat(1, info.Centroid);
@@ -181,7 +180,7 @@ for i = 1:60:pm.nFrames
         end
     end
 
-    %aspect ratio    
+      aspect ratio    
     %old definition of circularity
     mn = cat(1,info.MinorAxisLength);
     mj = cat(1,info.MajorAxisLength);
@@ -194,18 +193,17 @@ for i = 1:60:pm.nFrames
     pause
 end
 
-if isempty(store.csi{1})==0
-    xlswrite([fldname,'\ccr.xls'], store.csi{1}, 'circularity of first frame');
+if isempty(store.csi{1})
+xlswrite([fldname,'\ccr.xls'], store.csi{1}, 'circularity of first frame');
 end
-if isempty(store.csi{2})==0
-    xlswrite([fldname,'\ccr.xls'], store.csi{2}, 'circularity of last frame');
+if isempty(store.csi{2})
+xlswrite([fldname,'\ccr.xls'], store.csi{2}, 'circularity of last frame');
 end
-if isempty(store.aspectratio{1})==0
-    xlswrite([fldname,'\ccr.xls'], store.aspectratio{1}, 'aspectratio of first frame');
-end
-if isempty(store.aspectratio{2})==0
-    xlswrite([fldname,'\ccr.xls'], store.aspectratio{2}, 'aspectratio of last frame');
-end
+if isempty(store.aspectratio{1})
+xlswrite([fldname,'\ccr.xls'], store.aspectratio{1}, 'aspectratio of first frame');
+if isempty(store.csi{2})
+xlswrite([fldname,'\ccr.xls'], store.aspectratio{2}, 'aspectratio of last frame');
+
 %   aspect ratio    
 %     %old definition of circularity
 %     mn = cat(1,info.MinorAxisLength);
