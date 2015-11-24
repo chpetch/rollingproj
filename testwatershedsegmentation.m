@@ -2,24 +2,18 @@
 
 clear
 clc
-clf
+%clf
 
 filetype{1} = '*.tif';
 filetype{2} = '*.avi';
 
 %associated variables
 pm.tbf = 0.5;
-pm.contrast = [0.6 1];
 pm.nFrames = 61;
-pm.pkheight = 0.15;
-pm.tlr = 5;
 pm.d_threshold = 100;
 %minimum number of frames that cell has to appear
 pm.mft = 10;
-pm.pkdist = 5;
 pm.input_binsize = 9;
-pm.convexarea = [25,40];
-pm.umperpx = 0;
 pm.step = 1;
 pm.lng = 100;
 pm.color = 'g';
@@ -37,7 +31,7 @@ pm.fldname = [num2str(dt(3)),'_',num2str(dt(2)),'_',num2str(dt(1)),'_H',num2str(
 
 handles.pathname = [PathName,FileName];
 
-fld=dir(handles.pathname(1:max(findstr(handles.pathname,'\'))));
+fld=dir([handles.pathname(1:max(findstr(handles.pathname,'\'))),FileName(1:end-4),'\']);
 listoffilename = {fld.name};
 k = 1;
 if fldop == 1;
@@ -58,7 +52,7 @@ end
 %prepare save path
 savename = handles.pathname(1:end-4);
 fldname = pm.fldname;
-fldname = [savename(1:max(findstr(savename,'\'))),fldname];
+fldname = [savename(1:max(findstr(savename,'\'))),FileName(1:end-4),'\'];
 mkdir(fldname)
 ba = 1;
 
@@ -66,10 +60,7 @@ for i = 1:60:pm.nFrames
     i
     pic(i).cdata = imread(handles.pathname,i);
     procpic = pic(i).cdata;
-    %     hgamma = ...
-    %             vision.GammaCorrector(2.2,'Correction','De-gamma');
-    %     y = step(hgamma, procpic);
-    %     procpic = y;
+    
     %reverse color
     procpic = imcomplement(procpic);
     procpic = imsharpen(procpic);
@@ -92,6 +83,8 @@ for i = 1:60:pm.nFrames
     bw = bwareaopen(bw, 150);
     %Hessian ridge detection (will be used as segmentation function)
     Hf=hessianridgefilter(bw,0);
+    %Sobel edge detection (will be used as segmentation function)
+    I_sobel = imagefilt(I3,'sobel',1,2);
     
     %determine foreground mask
     I = imcomplement(I3);
@@ -111,29 +104,38 @@ for i = 1:60:pm.nFrames
     fgm4 = imclearborder(fgm4, 18);
     %fgm4 = imerode(bw,se2);
     %create foreground mask by merging 2 masks
+    fgm4 = bwareaopen(fgm4, 20);
+    %fgm4 = imdilate(fgm4,ones(2,2));
     fgm4 = fgm4&bw;
-    fgm4 = bwareaopen(fgm3, 20);
+    fgm4 = bwareaopen(fgm4, 20);
     
     %determine background mask
-    D = ~bwdist(im2bw(Iobrcbr, graythresh(Iobrcbr)));
-    %D = ~bwdist(bw);
-
+    %D = ~bwdist(im2bw(Iobrcbr, graythresh(Iobrcbr)));
+    D = bwdist(bw);
     DL = watershed(D);
     bgm = DL == 0;
     
-    %mHf = uint16((Hf.^2)*65535);
-    gradmag2 = imimposemin(Hf, fgm4|bgm);
+    Hf = (Hf.^2);
+    mHf = (Hf./max(Hf(:)))*65535;
+    %mHf = imcomplement(mHf);
+    
+    gradmag2 = imimposemin(I_sobel, bgm|fgm4);
+    %figure
+    %imshow(gradmag2)
     L = watershed(gradmag2);
-       
+    
     I4 = I;
-    I4(imdilate(L == 0, ones(3, 3)) | bgm | fgm4) = 255;
+    I4(imdilate(L == 0, ones(3, 3)) | bgm | fgm4) = 65535;
     Lrgb = label2rgb(L, 'jet', 'w', 'shuffle');
-    figure
-    imshow(I)
+    figure('units','normalized','outerposition',[0 0 1 1])
+    subplot(1,2,1)
+    imshow(ori)
     hold on
+    subplot(1,2,2)
+    imshow(I)
     himage = imshow(Lrgb);
     himage.AlphaData = 0.3;
-    title('Lrgb superimposed transparently on original image')
+    title('Segmented cells on original image')
     
     %extract infomation from bw image
     info = regionprops(L,'Centroid','Eccentricity','MajorAxisLength','MinorAxisLength','Area');
@@ -145,11 +147,12 @@ for i = 1:60:pm.nFrames
     center = cat(1, info.Centroid);
     circularity = mj./mn;
     %show fancy plot blah blah
-    for k = 1 : size(info,1)-1
+    for k = 1 : size(info,1)
         text(center(k,1),center(k,2), ...
-            sprintf('%1.3f', circularity(k)), ...
+            sprintf('%d: %1.3f',k, circularity(k)), ...
             'Color','r');
     end
+    
     
     %store necessary information
     store.features{ba} = [fliplr(center)];
@@ -158,101 +161,42 @@ for i = 1:60:pm.nFrames
     pause
 end
 
-%xlswrite([fldname,'\ccr.xls'], store.circularity{1}, 'circularity of first frame');
-%xlswrite([fldname,'\ccr.xls'], store.circularity{2}, 'circularity of last frame');
+xlswrite([fldname,'\ccr.xls'], store.circularity{1}, 'circularity of first frame');
+xlswrite([fldname,'\ccr.xls'], store.circularity{2}, 'circularity of last frame');
 
-%match cell of frame t and frame t+1
-% run = 1;
-% d.index = [];
-% d.amp = [];
-% z.index = [];
-% mf = store.features;
+% delcell = 0;
+%     stp = 1;
+%     while stp == 1
+%         imshow(I)
+%         hold on
+%         himage = imshow(Lrgb);
+%         himage.AlphaData = 0.3;
+%         title('Lrgb superimposed transparently on original image')
 %
-% sidis = matchingframes(mf);
-%
-% [t_cell,sframe] = calculatevelocity(mf,sidis,pm);
-%
-% for i = 1:size(t_cell,2)
-%     ntf(i) = size(t_cell{i},1);
-% end
-%
-% %cell number (1) starting frame (2) - end frame (3)
-% result.cpos_original = t_cell;
-% result.cse_original = [[1:size(t_cell,2)];sframe;sframe + ntf - ones(size(ntf,1),1)];
-%
-% %find 2 detected objs that seem to be the same (disconnected cells)
-% cccs = [];
-% for cc = 1 : size(result.cse_original,2)
-%     result.cse_original(3,cc);
-%     for ccc = cc+1 : size(result.cse_original,2)
-%         if (result.cse_original(2,ccc) - result.cse_original(3,cc)) > 0 ...
-%                 && (result.cse_original(2,ccc) - result.cse_original(3,cc)) < pm.ccf
-%             if abs(result.cpos_original{1,cc}(end,2) - result.cpos_original{1,ccc}(1,2)) < 1
-%                 if abs(result.cpos_original{1,cc}(end,1) - result.cpos_original{1,ccc}(1,1)) < pm.d_threshold
-%                     cccs = [cccs;cc,ccc];
-%                     break
-%                 end
-%             end
+%         %extract infomation from bw image
+%         info = regionprops(L,'Centroid','Eccentricity','MajorAxisLength','MinorAxisLength','Area');
+%         %delete background and large size elements in image
+%         area = cat(1,info.Area);
+%         info(find(area>pm.th_area)) = [];
+%         mn = cat(1,info.MinorAxisLength);
+%         mj = cat(1,info.MajorAxisLength);
+%         center = cat(1, info.Centroid);
+%         circularity = mj./mn;
+%         %show fancy plot blah blah
+%         for k = 1 : size(info,1)-1
+%             text(center(k,1),center(k,2), ...
+%                 sprintf('%d: %1.3f',k, circularity(k)), ...
+%                 'Color','r');
+%         end
+%         %delete the cells that we don't want
+%         delcell = input('Which cell do you want to delete?');
+%         if (delcell ~= 0)
+%             info = regionprops(L,'Centroid','Eccentricity','MajorAxisLength','MinorAxisLength','Area');
+%             info(delcell) = [];
+%             L(L == delcell) = 1;
+%             clf
+%         end
+%         if delcell == 0
+%             stp = 0;
 %         end
 %     end
-% end
-%
-% %connect seem to be connected cells
-% if isempty(cccs) == 0
-%     for i = size(cccs,1):-1:1
-%         t_cell{cccs(i,1)} = [t_cell{cccs(i,1)};t_cell{cccs(i,2)}];
-%     end
-%
-%     t_cell(cccs(:,2)) = [];
-%     sframe(cccs(:,2)) = [];
-%
-%     ntf = [];
-%     for i = 1:size(t_cell,2)
-%         ntf(i) = size(t_cell{i},1);
-%     end
-% end
-% result.cpos_original = t_cell;
-% result.cse_original = [[1:size(t_cell,2)];sframe;sframe + ntf - ones(size(ntf,1),1)];
-%
-% if isempty(t_cell) ~= 1
-%
-%     %delete cells that move faster than pm.d_threshold
-%     for i = 1:size(t_cell,2)
-%         for j = 1 : size(t_cell{i},1)-1
-%             acvel{i}(j) = (sqrt(sum((t_cell{i}(j,:) - t_cell{i}(j+1,:)).^2)));
-%             if acvel{i}(j) > pm.d_threshold
-%                 %acvel{i}(j) = [];
-%                 %t_cell{i}(j+1:end,:) = [];
-%                 disp('cell moving faster than threshold is detected')
-%                 break
-%             end
-%         end
-%         ntf(i) = size(t_cell{i},1);
-%     end
-%
-%     %delete cell that appear less than x (pm.mft) frames
-%     t_cell = t_cell(find(ntf>pm.mft));
-%     sframe = sframe(find(ntf>pm.mft));
-%     ntf = [];
-%     for i = 1:size(t_cell,2)
-%         ntf(i) = size(t_cell{i},1);
-%     end
-%
-%     %cell number (1) starting frame (2) - end frame (3)
-%     result.cse_new = [[1:size(t_cell,2)];sframe;sframe + ntf - ones(size(ntf,1),1)];
-%     result.cpos_new = t_cell;
-%
-%     %image projection
-%         for i = 1:size(result.cpos_new,2)
-%             k = 1;
-%             for j = result.cse_new(2,i):1:result.cse_new(3,i)
-%                 procpic = double(pic(j).cdata);
-%                 procpic = procpic-min(procpic(:));
-%                 procpic = procpic/max(procpic(:));
-%                 kkk(:,:,k) = procpic;
-%                 k = k+1;
-%             end
-%             procpic = std(kkk,0,3);
-%             ncpic{i} = procpic/max(procpic(:));
-%         end
-% end

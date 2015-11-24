@@ -132,6 +132,8 @@ for frun = 1:pm.nof
         tophatpic1 = imtophat(procpic, strel('disk', 20));
         
         logpic = imagefilt(tophatpic1,'log',10,2.5);
+        logpic = uint16(logpic);
+        
         I = logpic;
         thresh = multithresh(I,2);
         seg_I = imquantize(I,thresh);
