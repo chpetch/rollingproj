@@ -194,8 +194,6 @@ for i = 1:60:pm.nFrames
     pause
 end
 
-%save parameters
-
 if isempty(store.csi{1})==0
     xlswrite([fldname,'\ccr.xls'], store.csi{1}, 'circularity of first frame');
 end

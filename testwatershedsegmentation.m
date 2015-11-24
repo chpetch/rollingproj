@@ -194,6 +194,8 @@ for i = 1:60:pm.nFrames
     pause
 end
 
+%save parameters
+
 if isempty(store.csi{1})==0
     xlswrite([fldname,'\ccr.xls'], store.csi{1}, 'circularity of first frame');
 end
@@ -206,45 +208,3 @@ end
 if isempty(store.aspectratio{2})==0
     xlswrite([fldname,'\ccr.xls'], store.aspectratio{2}, 'aspectratio of last frame');
 end
-%   aspect ratio    
-%     %old definition of circularity
-%     mn = cat(1,info.MinorAxisLength);
-%     mj = cat(1,info.MajorAxisLength);
-%     circularity = mj./mn;
-
-% delcell = 0;
-%     stp = 1;
-%     while stp == 1
-%         imshow(I)
-%         hold on
-%         himage = imshow(Lrgb);
-%         himage.AlphaData = 0.3;
-%         title('Lrgb superimposed transparently on original image')
-%
-%         %extract infomation from bw image
-%         info = regionprops(L,'Centroid','Eccentricity','MajorAxisLength','MinorAxisLength','Area');
-%         %delete background and large size elements in image
-%         area = cat(1,info.Area);
-%         info(find(area>pm.th_area)) = [];
-%         mn = cat(1,info.MinorAxisLength);
-%         mj = cat(1,info.MajorAxisLength);
-%         center = cat(1, info.Centroid);
-%         circularity = mj./mn;
-%         %show fancy plot blah blah
-%         for k = 1 : size(info,1)-1
-%             text(center(k,1),center(k,2), ...
-%                 sprintf('%d: %1.3f',k, circularity(k)), ...
-%                 'Color','r');
-%         end
-%         %delete the cells that we don't want
-%         delcell = input('Which cell do you want to delete?');
-%         if (delcell ~= 0)
-%             info = regionprops(L,'Centroid','Eccentricity','MajorAxisLength','MinorAxisLength','Area');
-%             info(delcell) = [];
-%             L(L == delcell) = 1;
-%             clf
-%         end
-%         if delcell == 0
-%             stp = 0;
-%         end
-%     end
