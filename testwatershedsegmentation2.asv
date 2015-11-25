@@ -1,0 +1,12 @@
+for i = 1:1:pm.nFrames
+    pic(i).cdata = imread(handles.pathname,i);
+end
+for i = 2:1:pm.nFrames-1
+    procpic1 = pic(i-1).cdata;
+    procpic2 = pic(i).cdata;
+    procpic3 = pic(i+1).cdata;
+    diff12 = abs(procpic1-procpic2);
+    diff13 = abs(procpic2-procpic3);
+    imshowpair(diff12,diff13,'montage')
+end
+    

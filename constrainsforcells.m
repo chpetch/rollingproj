@@ -1,4 +1,4 @@
-function [result,ntf] = constrainsforcells(t_cell,sframe,pm)
+function [result,ntf,sframe] = constrainsforcells(t_cell,sframe,pm)
 %constrains that applied to the cell
 % %input
 % t_cell - cell containing position of all cell in all frame
