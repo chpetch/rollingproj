@@ -22,6 +22,7 @@ y_rotated = vo(2,:);
 % make a plot
 if plf == 1
     figure(4)
+    clf
     plot(abs(x), y, 'k-',abs(x_rotated), y_rotated, 'r-');
     ylim auto
     axis equal

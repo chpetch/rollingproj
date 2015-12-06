@@ -10,7 +10,9 @@ filetype{2} = '*.avi';
 %associated variables
 pm.tbf = 0.5;
 pm.nFrames = 61;
-pm.d_threshold = 100;
+pm.d_threshold = 25;
+pm.d_threshold_bwd = 0.5;
+pm.d_ydis = 1;
 %minimum number of frames that cell has to appear
 pm.mft = 10;
 pm.input_binsize = 9;
@@ -193,6 +195,7 @@ sidis = matchingframes(mf);
 if isempty(t_cell) ~= 1
     %image projection
     for i = 1:size(result.cpos_new,2)
+        clear kkk
         k = 1;
         for j = result.cse_new(2,i):1:result.cse_new(3,i)
             procpic = double(pic(j).cdata);
@@ -229,12 +232,11 @@ if isempty(t_cell) ~= 1
         pause(0.5)
         saveas(figure(2),[fldname,'\',pm.FileName,'\tj_cell',num2str(j),'.jpg'])
         dataplot = bsxfun(@minus,result.cpos_new{j},result.cpos_new{j}(1,:));
-        auc(j)=linerotation(dataplot(:,1),dataplot(:,2),1)/abs(dataplot(end,1));
-        pause
+        %auc(j)=linerotation(dataplot(:,1),dataplot(:,2),1)/abs(dataplot(end,1));
         %trace cell motion
         %cmpic = tracecellmotion(pic,result.cpos_new{j},sframe(j),1,[fldname,pm.FileName,'\tj_cell',num2str(j)]);
     end
-    auc=auc';
+    %auc=auc';
     
     %delete cell
     result.cpos_new(htd) = [];
@@ -247,9 +249,12 @@ if isempty(t_cell) ~= 1
         clear dataplot
         dataplot = bsxfun(@minus,result.cpos_new{j},result.cpos_new{j}(1,:));
         cdist{j} = dataplot;
-        plot(dataplot(:,1),dataplot(:,2),'color',pm.color, 'LineWidth', 1)
+        plot(dataplot(:,1),dataplot(:,2),'color','r', 'LineWidth', 1)
         hold on
+        xlim([-300,0])
+        ylim([-60,60])
     end
+    cdist = plotcelltraj(result.cpos_new,[-300,0],[-60,60],'r');
     pm.distdata{frun} = cdist;
     
     figure(7)
@@ -276,7 +281,7 @@ if isempty(t_cell) ~= 1
         end
     end
     
-    pm.vidvel{frun} = cvel;
+    result.vidvel{frun} = cvel;
     
     save([handles.pathname(1:end-4),'.mat'],'fpname','pm','result')
 else

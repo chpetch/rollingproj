@@ -59,8 +59,6 @@ else
     pm.nof = 1;
 end
 
-result = [];
-
 for frun = 1:pm.nof
     if fldop == 1
         handles.pathname = [handles.pathname(1:max(findstr(handles.pathname,'\'))),listoftif{frun}];
@@ -115,7 +113,7 @@ for frun = 1:pm.nof
     pause(0.5)
     clf
     %pause
-    clearvars -except pic pm.upbd pm.lwbd pm.tbf pm.nFrames zproject npic pm handles fldop listoftif frun fldname result
+    clearvars -except pic pm.upbd pm.lwbd pm.tbf pm.nFrames zproject npic pm handles fldop listoftif frun fldname
     
     %prepare save path
     savename = handles.pathname(1:end-4);
@@ -173,7 +171,7 @@ for frun = 1:pm.nof
     
     [t_cell,sframe] = calculatevelocity(mf,sidis,pm);
     
-    [result,ntf,sframe] = constrainsforcells(t_cell,result,sframe,pm);
+    [result,ntf,sframe] = constrainsforcells(t_cell,sframe,pm);
     
     if isempty(t_cell) ~= 1
         %image projection
@@ -225,12 +223,15 @@ for frun = 1:pm.nof
         end
         
         %delete cell
-        result.cpos_new(htd) = [];
-        result.cse_new(:,htd) = [];
+        result.cse_new(htd) = [];
+        
         sframe(htd) = [];
-        for i = 1:size(result.cpos_new,2)
-            ntf(i) = size(result.cpos_new{i},1);
+        for i = 1:size(t_cell,2)
+            ntf(i) = size(t_cell{i},1);
         end
+        %cell number (1) starting frame (2) - end frame (3)
+        result.cse_new = [[1:size(t_cell,2)];sframe;sframe + ntf - ones(size(ntf,1),1)];
+        result.cpos_new = t_cell;
         clear cvel cvelxy
         
         %plot cell trajectory in graph
