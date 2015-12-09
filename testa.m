@@ -34,7 +34,7 @@ for i = 1:1:4
         clear dataplot
         dataplot = bsxfun(@minus,result.cpos_new{j},result.cpos_new{j}(1,:));
         cdist{j} = dataplot;
-        plot(dataplot(:,1),dataplot(:,2),'color','k', 'LineWidth', 1)
+        plot(abs(dataplot(:,1)),dataplot(:,2),'color','k', 'LineWidth', 1)
         hold on
         %xlim([-300,0])
         ylim([-60,60])
@@ -50,7 +50,7 @@ for i = 1:1:4
 end
 
 clear delcellarray
-figure(3)
+%figure(3)
 for i =1:2
     %patient#28 video 7
     auc_ch_28 = [];
@@ -58,7 +58,7 @@ for i =1:2
     delcellarray = [];
     if i == 1
         load('C:\Users\Chayakorn\OneDrive for Business\drhou\09042015 WBCs-0028 (ctrl)\60x 1 million per mL\Time Series-9.mat')
-        delcellarray = [4,22,24,30];
+        delcellarray = [4,12,20,30];
         result_edited = delcell(result,delcellarray);
         result = result_edited;
     elseif i == 2
@@ -73,9 +73,14 @@ for i =1:2
         cdist{j} = dataplot;
         plot(dataplot(:,1),dataplot(:,2),'color','b', 'LineWidth', 1)
         hold on
-        %xlim([-300,0])
-        ylim([-60,60])
+%         xlim([-460,460])
+%         ylim([-60,60])
         auc_ch_28(j)=linerotation(dataplot(:,1),dataplot(:,2),0)/abs(dataplot(end,1));
+% auc_ch_28(j)=linerotation(dataplot(:,1),dataplot(:,2),1)/abs(dataplot(end,1));
+% title(['Video: ',num2str(i),' Cell: ',num2str(j)])        
+% xlim([0,500])
+% ylim([-60,60])
+
         auc_28(j) = abs(trapz(dataplot(:,1),dataplot(:,2))/abs(dataplot(end,1)));
     end
     auc_ch_28 = auc_ch_28';

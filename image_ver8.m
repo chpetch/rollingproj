@@ -11,7 +11,7 @@ pm.contrast = [0.6 1];
 pm.nFrames = 61;
 pm.pkheight = 0.15;
 pm.tlr = 15;
-%maximum distance 
+%maximum distance
 pm.d_threshold = 25;
 %maximum backward distance
 pm.d_threshold_bwd = 0.5;
@@ -23,14 +23,14 @@ pm.ccf = 5;
 pm.mft = 10;
 pm.pkdist = 5;
 pm.input_binsize = 9;
-pm.convexarea = [25,40];
 pm.umperpx = 0;
 pm.step = 0.5;
 pm.lng = 20;
 pm.color = 'b';
-
 pm.smc = 30;
 pm.removeslowspeed = 0;
+%resolution factor 512^2 = 1;
+pm.resf = 0;
 fldop = 1;
 dt = clock;
 
@@ -76,6 +76,16 @@ for frun = 1:pm.nof
         npic = npic/max(npic(:));
         kkk(:,:,i) = npic;
         if i == 1
+            pm.resf = size(pic(i).cdata,1)/512;
+            pm.umperpx = 1.3*pm.resf;
+            %parameter initialization
+            %maximum distance
+            pm.d_threshold = pm.d_threshold*pm.resf;
+            %maximum backward distance
+            pm.d_threshold_bwd = pm.d_threshold_bwd*pm.resf;
+            %maximum y distance difference
+            pm.d_ydis = pm.d_ydis*pm.resf;
+            pm.tlr = pm.tlr*pm.resf;
             for j = 1:1:size(pic(i).cdata,1)
                 hc(j) = sum(pic(i).cdata(j,:))/(512*65535);
             end
@@ -111,7 +121,6 @@ for frun = 1:pm.nof
     npic = std(kkk,0,3);
     npic = npic/max(npic(:));
     %pm.umperpx = 400/abs(pm.upbd-pm.lwbd);
-    pm.umperpx = 1.3;
     pause(0.5)
     clf
     %pause
@@ -137,11 +146,11 @@ for frun = 1:pm.nof
         procpic(1:pm.upbd+pm.tlr,:) = 0;
         procpic(pm.lwbd-pm.tlr:end,:) = 0;
         
-        tophatpic1 = imtophat(procpic, strel('disk', 20));
+        tophatpic1 = imtophat(procpic, strel('disk', 20*pm.resf));
         
-        logpic = imagefilt(tophatpic1,'log',10,2.5);
+        logpic = imagefilt(tophatpic1,'log',10*pm.resf,2.5);
         logpic = uint16(logpic);
-        
+        imshow(logpic,[])
         I = logpic;
         thresh = multithresh(I,2);
         seg_I = imquantize(I,thresh);
